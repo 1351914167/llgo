@@ -15,11 +15,9 @@ require (
 	golang.org/x/tools v0.35.0
 )
 
-require github.com/goplus/llpkgstore v0.0.0-20250514100530-dd449df83ebf
-
 require (
-	golang.org/x/mod v0.26.0 // indirect
-	golang.org/x/sync v0.16.0 // indirect
+	golang.org/x/mod v0.26.0
+	golang.org/x/sync v0.16.0
 )
 
 replace github.com/goplus/llgo/runtime => ./runtime
