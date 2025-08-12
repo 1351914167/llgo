@@ -13,10 +13,17 @@
  * See the License for the specific language governing permissions and limitations under the License.
  */
 
-use "get [flags] [packages]"
+import (
+	"github.com/goplus/llgo/cmd/internal/get"
+)
 
-short "Add dependencies to current module and install them"
+use "get [name@pyVersion | module@version]"
+
+short "本地生成 Python 包的 Go Bindings（llpyg），并准备运行环境"
 
 run args => {
-	panic "todo"
+	err := get.Main(args)
+	if err != nil {
+		panic "err!!"
+	}
 }

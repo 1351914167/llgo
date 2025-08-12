@@ -19,6 +19,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"go/ast"
 	"go/token"
@@ -26,6 +27,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 
 	"github.com/goplus/gogen"
@@ -69,18 +71,50 @@ func pysigfetch(pyLib string, names []string) (mod module) {
 	return
 }
 
+func printSymbolDetails(mod *module, name string) {
+	for _, item := range mod.Items {
+		if item.Name == name {
+			fmt.Printf("Name: %s\n", item.Name)
+			fmt.Printf("Type: %s\n", item.Type)
+			fmt.Printf("Sig: %s\n", item.Sig)
+			fmt.Printf("URL: %s\n", item.URL)
+			fmt.Println("-----")
+			return
+		}
+	}
+	fmt.Printf("Symbol '%s' not found\n", name)
+}
+
 func main() {
-	if len(os.Args) < 2 {
-		fmt.Fprintln(os.Stderr, "Usage: llpyg <pythonLibPath>")
+	outDirFlag := flag.String("o", "", "output directory for generated Go bindings")
+	// compatibility: support --out as alias
+	outDirAlias := flag.String("out", "", "alias of -o")
+	flag.Parse()
+
+	args := flag.Args()
+	if len(args) < 1 {
+		fmt.Fprintln(os.Stderr, "Usage: llpyg <pythonLib> [-o outputDir]")
 		return
 	}
-	pyLib := os.Args[1]
+	pyLib := args[0]
 
+	//解析python包名，类型，方法的签名(参数&返回值), 文档
 	mod := pydump(pyLib)
 	if mod.Name != pyLib {
 		log.Printf("import module %s failed\n", pyLib)
 		os.Exit(1)
 	}
+	// printSymbolDetails(&mod, "dot")
+	for _, item := range mod.Items {
+		fmt.Printf("Name: %s, Type: %s, Sig: %s, URL: %s\n", item.Name, item.Type, item.Sig, item.URL)
+	}
+	// 打印Name为"random"的所有信息
+	for _, item := range mod.Items {
+		if item.Name == "random" {
+			fmt.Printf("Name: %s\nType: %s\nSig: %s\nURL: %s\n", item.Name, item.Type, item.Sig, item.URL)
+		}
+	}
+	//新建go包，生成基础python
 	pkg := gogen.NewPackage("", pkgName(pyLib), nil)
 	pkg.Import("unsafe").MarkForceUsed(pkg)      // import _ "unsafe"
 	py := pkg.Import("github.com/goplus/lib/py") // import "github.com/goplus/lib/py"
@@ -89,6 +123,7 @@ func main() {
 		cb.Val("py." + mod.Name)
 		return 1
 	}
+
 	defs := pkg.NewConstDefs(pkg.Types.Scope())
 	defs.New(f, 0, 0, nil, "LLGoPackage")
 
@@ -112,7 +147,27 @@ func main() {
 		}
 	}
 
-	pkg.WriteTo(os.Stdout)
+	// 输出目录：优先使用 -o/--out 指定；未指定则使用 ./<mod.Name>
+	outDir := strings.TrimSpace(*outDirFlag)
+	if outDir == "" {
+		out := strings.TrimSpace(*outDirAlias)
+		if out != "" {
+			outDir = out
+		}
+	}
+	if outDir == "" {
+		outDir = "./" + mod.Name
+	}
+	if err := os.MkdirAll(outDir, 0755); err != nil {
+		log.Fatal(err)
+	}
+	file, err := os.Create(filepath.Join(outDir, mod.Name+".go"))
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer file.Close()
+
+	pkg.WriteTo(file)
 }
 
 func pkgName(pyLib string) string {
