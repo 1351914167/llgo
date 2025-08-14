@@ -11,6 +11,7 @@ import (
 	"runtime"
 	"strings"
 
+	pyinstaller "github.com/goplus/llgo/_xtool/pyinstaller"
 	"github.com/goplus/llgo/cmd/internal/base"
 )
 
@@ -105,9 +106,22 @@ func handleModuleSpecWithFlags(mod string, ver string, flags []string) error {
 				return runGoGetWithFlags(flags, mod+"@"+vers[len(vers)-1])
 			}
 		}
-		if err := runGoGetWithFlags(flags, mod+"@latest"); err != nil {
+		// 云端检测
+		vers, err := listModuleVersions(mod)
+		if err != nil {
+			return err
+		}
+		if len(vers) == 0 {
 			printLLPygHint()
 			return fmt.Errorf("指定版本不存在于云端 llpkg: %s@%s", mod, "latest")
+		}
+		// 安装对应 Python 包
+		pkgName := strings.TrimPrefix(mod, llpkgPrefix)
+		if err := installPythonPackage(pkgName); err != nil {
+			return fmt.Errorf("安装 Python 包失败: %w", err)
+		}
+		if err := runGoGetWithFlags(flags, mod+"@latest"); err != nil {
+			return err
 		}
 		return runGoModTidy()
 	}
@@ -117,6 +131,11 @@ func handleModuleSpecWithFlags(mod string, ver string, flags []string) error {
 	}
 	if !contains(vers, ver) {
 		return fmt.Errorf("指定版本不存在于云端 llpkg: %s@%s", mod, ver)
+	}
+	// 安装对应 Python 包
+	pkgName := strings.TrimPrefix(mod, llpkgPrefix)
+	if err := installPythonPackage(pkgName); err != nil {
+		return fmt.Errorf("安装 Python 包失败: %w", err)
 	}
 	if err := runGoGetWithFlags(flags, mod+"@"+ver); err != nil {
 		return err
@@ -141,6 +160,10 @@ func ensureLLPkgByNameVersionWithFlags(name, ver string, flags []string) error {
 	if !contains(vers, ver) {
 		printLLPygHint()
 		return fmt.Errorf("指定版本不存在于云端 llpkg: %s@%s", mod, ver)
+	}
+	// 安装对应 Python 包
+	if err := installPythonPackage(name); err != nil {
+		return fmt.Errorf("安装 Python 包失败: %w", err)
 	}
 	if err := runGoGetWithFlags(flags, mod+"@"+ver); err != nil {
 		return err
@@ -233,4 +256,10 @@ func printLLPygHint() {
 	fmt.Fprintln(os.Stderr, " - 方案一：向官方仓库提交 PR 以集成自动流程（建议）。")
 	fmt.Fprintln(os.Stderr, " - 方案二：本地安装 llpyg 工具链后重试：")
 	fmt.Fprintln(os.Stderr, "     go install github.com/goplus/llgo/chore/llpyg@latest")
+}
+
+// installPythonPackage 安装 Python 包
+func installPythonPackage(packageName string) error {
+	installer := pyinstaller.NewInstaller()
+	return installer.InstallPackage(packageName)
 }
