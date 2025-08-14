@@ -11,7 +11,7 @@ import (
 	"runtime"
 	"strings"
 
-	pyinstaller "github.com/goplus/llgo/_xtool/pyinstaller"
+	"github.com/goplus/llgo/_xtool/pyinstaller"
 	"github.com/goplus/llgo/cmd/internal/base"
 )
 
@@ -116,10 +116,10 @@ func handleModuleSpecWithFlags(mod string, ver string, flags []string) error {
 			return fmt.Errorf("指定版本不存在于云端 llpkg: %s@%s", mod, "latest")
 		}
 		// 安装对应 Python 包
-		pkgName := strings.TrimPrefix(mod, llpkgPrefix)
-		if err := installPythonPackage(pkgName); err != nil {
-			return fmt.Errorf("安装 Python 包失败: %w", err)
-		}
+		// pkgName := strings.TrimPrefix(mod, llpkgPrefix)
+		// if err := installPythonPackage(pkgName); err != nil {
+		// 	return fmt.Errorf("安装 Python 包失败: %w", err)
+		// }
 		if err := runGoGetWithFlags(flags, mod+"@latest"); err != nil {
 			return err
 		}
@@ -133,10 +133,10 @@ func handleModuleSpecWithFlags(mod string, ver string, flags []string) error {
 		return fmt.Errorf("指定版本不存在于云端 llpkg: %s@%s", mod, ver)
 	}
 	// 安装对应 Python 包
-	pkgName := strings.TrimPrefix(mod, llpkgPrefix)
-	if err := installPythonPackage(pkgName); err != nil {
-		return fmt.Errorf("安装 Python 包失败: %w", err)
-	}
+	// pkgName := strings.TrimPrefix(mod, llpkgPrefix)
+	// if err := installPythonPackage(pkgName); err != nil {
+	// 	return fmt.Errorf("安装 Python 包失败: %w", err)
+	// }
 	if err := runGoGetWithFlags(flags, mod+"@"+ver); err != nil {
 		return err
 	}
@@ -162,9 +162,9 @@ func ensureLLPkgByNameVersionWithFlags(name, ver string, flags []string) error {
 		return fmt.Errorf("指定版本不存在于云端 llpkg: %s@%s", mod, ver)
 	}
 	// 安装对应 Python 包
-	if err := installPythonPackage(name); err != nil {
-		return fmt.Errorf("安装 Python 包失败: %w", err)
-	}
+	// if err := installPythonPackage(name); err != nil {
+	// 	return fmt.Errorf("安装 Python 包失败: %w", err)
+	// }
 	if err := runGoGetWithFlags(flags, mod+"@"+ver); err != nil {
 		return err
 	}

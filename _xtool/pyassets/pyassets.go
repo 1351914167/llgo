@@ -1,4 +1,4 @@
-package main
+package pyassets
 
 import (
 	"archive/tar"

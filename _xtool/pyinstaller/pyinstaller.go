@@ -1,4 +1,4 @@
-package main
+package pyinstaller
 
 import (
 	"archive/zip"
