@@ -65,7 +65,7 @@ func Main(args []string) error {
 	return firstErr
 }
 
-const llpkgPrefix = "github.com/goplus/llpkg/"
+const llpkgPrefix = "github.com/Bigdata-shiyang/test/"
 
 // 处理一个参数（可能是 module[@version] 或 name@Version）
 func processModuleArg(arg string, flags []string) error {
@@ -102,26 +102,17 @@ func handleModuleSpecWithFlags(mod string, ver string, flags []string) error {
 		if inLocal(mod) {
 			vers, _ := listModuleVersionsLocal(mod) // GOPROXY=off
 			if len(vers) > 0 {
-				// 选本地最高版本
 				return runGoGetWithFlags(flags, mod+"@"+vers[len(vers)-1])
 			}
 		}
-		// 云端检测
-		vers, err := listModuleVersions(mod)
-		if err != nil {
-			return err
-		}
-		if len(vers) == 0 {
+		if err := runGoGetWithFlags(flags, mod+"@latest"); err != nil {
 			printLLPygHint()
 			return fmt.Errorf("指定版本不存在于云端 llpkg: %s@%s", mod, "latest")
 		}
-		// 安装对应 Python 包
-		// pkgName := strings.TrimPrefix(mod, llpkgPrefix)
-		// if err := installPythonPackage(pkgName); err != nil {
-		// 	return fmt.Errorf("安装 Python 包失败: %w", err)
-		// }
-		if err := runGoGetWithFlags(flags, mod+"@latest"); err != nil {
-			return err
+		// 新增：远端拉取成功后安装 Python 包
+		pkgName := strings.TrimPrefix(mod, llpkgPrefix)
+		if err := installPythonPackage(pkgName); err != nil {
+			return fmt.Errorf("安装 Python 包失败: %w", err)
 		}
 		return runGoModTidy()
 	}
@@ -132,11 +123,6 @@ func handleModuleSpecWithFlags(mod string, ver string, flags []string) error {
 	if !contains(vers, ver) {
 		return fmt.Errorf("指定版本不存在于云端 llpkg: %s@%s", mod, ver)
 	}
-	// 安装对应 Python 包
-	// pkgName := strings.TrimPrefix(mod, llpkgPrefix)
-	// if err := installPythonPackage(pkgName); err != nil {
-	// 	return fmt.Errorf("安装 Python 包失败: %w", err)
-	// }
 	if err := runGoGetWithFlags(flags, mod+"@"+ver); err != nil {
 		return err
 	}
@@ -151,6 +137,9 @@ func ensureLLPkgByNameVersionWithFlags(name, ver string, flags []string) error {
 		if err := runGoGetWithFlags(flags, mod+"@"+ver); err != nil {
 			return err
 		}
+		if err := installPythonPackage(name); err != nil {
+			return fmt.Errorf("安装 Python 包失败: %w", err)
+		}
 		return runGoModTidy()
 	}
 	vers, err := listModuleVersions(mod)
@@ -161,12 +150,11 @@ func ensureLLPkgByNameVersionWithFlags(name, ver string, flags []string) error {
 		printLLPygHint()
 		return fmt.Errorf("指定版本不存在于云端 llpkg: %s@%s", mod, ver)
 	}
-	// 安装对应 Python 包
-	// if err := installPythonPackage(name); err != nil {
-	// 	return fmt.Errorf("安装 Python 包失败: %w", err)
-	// }
 	if err := runGoGetWithFlags(flags, mod+"@"+ver); err != nil {
 		return err
+	}
+	if err := installPythonPackage(name); err != nil {
+		return fmt.Errorf("安装 Python 包失败: %w", err)
 	}
 	return runGoModTidy()
 }
@@ -263,3 +251,8 @@ func installPythonPackage(packageName string) error {
 	installer := pyinstaller.NewInstaller()
 	return installer.InstallPackage(packageName)
 }
+
+// 安装对应 Python 包
+// if err := installPythonPackage(name); err != nil {
+// 	return fmt.Errorf("安装 Python 包失败: %w", err)
+// }

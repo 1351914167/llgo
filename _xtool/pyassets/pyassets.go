@@ -43,7 +43,13 @@ func ExtractToTemp() (string, error) {
 
 // 解压到指定目录，返回 PYTHONHOME 路径（.../dstRoot/python）
 func ExtractToDir(dstRoot string) (string, error) {
-	root := filepath.Join(dstRoot, "test", "python")
+	root := filepath.Join(dstRoot, "python")
+
+	// 已存在则跳过解压
+	if st, err := os.Stat(root); err == nil && st.IsDir() {
+		return root, nil
+	}
+
 	if len(pyTarGz) > 0 {
 		if err := extractTarGzTo(root, pyTarGz); err != nil {
 			return "", err

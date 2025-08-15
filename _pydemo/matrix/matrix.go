@@ -1,8 +1,8 @@
 package main
 
 import (
+	"github.com/Bigdata-shiyang/test/numpy"
 	"github.com/goplus/lib/py"
-	"github.com/goplus/lib/py/numpy"
 	"github.com/goplus/lib/py/std"
 )
 
@@ -17,6 +17,6 @@ func main() {
 		py.List(6.0, 5.0, 4.0),
 		py.List(3.0, 2.0, 1.0),
 	)
-	x := numpy.Add(a, b)
+	x := numpy.Add(a, b, nil)
 	std.Print(py.Str("a+b ="), x)
 }

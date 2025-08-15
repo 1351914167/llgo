@@ -44,7 +44,13 @@ func (i *Installer) InstallPackage(packageName string) error {
 	}
 
 	// 2. 确定 site-packages 路径
-	sitePackagesPath := filepath.Join(standalonePath, "python", "lib", "python3.12", "site-packages")
+	sitePackagesPath := filepath.Join(standalonePath, "lib", "python3.12", "site-packages")
+
+	// 已安装则跳过
+	if isInstalled(packageName, sitePackagesPath) {
+		fmt.Printf("%s already installed in %s, skip\n", packageName, sitePackagesPath)
+		return nil
+	}
 
 	// 3. 从 GitHub Release 下载 .whl 文件到 site-packages
 	whlPath, err := i.downloadWheelFileToSitePackages(packageName, sitePackagesPath)
@@ -71,12 +77,19 @@ func (i *Installer) getStandalonePath() (string, error) {
 	// 	return standalonePath, nil
 	// }
 
-	cwd, _ := os.Getwd()
+	root := os.Getenv("LLGO_ROOT")
+	if root == "" {
+		var err error
+		root, err = os.Getwd()
+		if err != nil {
+			return "", fmt.Errorf("failed to get working dir: %w", err)
+		}
+	}
 	pyHome := pydyn.GetPyHome("")
 	if pyHome == "" {
 		var err error
 		// 从二进制内置资产解压一套可用的 Python 到临时目录
-		pyHome, err = pyassets.ExtractToDir(cwd)
+		pyHome, err = pyassets.ExtractToDir(root)
 		if err != nil {
 			log.Fatalf("extract embedded python failed: %v\n", err)
 		}
@@ -210,4 +223,14 @@ func (i *Installer) extractWheelToSitePackages(whlPath, sitePackagesPath, packag
 
 	fmt.Printf("Extracted wheel to: %s\n", sitePackagesPath)
 	return nil
+}
+
+func isInstalled(pkg, site string) bool {
+	if fi, err := os.Stat(filepath.Join(site, pkg)); err == nil && fi.IsDir() {
+		return true
+	}
+	if matches, _ := filepath.Glob(filepath.Join(site, pkg+"-*.dist-info")); len(matches) > 0 {
+		return true
+	}
+	return false
 }
