@@ -66,6 +66,25 @@ func ApplyEnv(pyHome string) error {
 		}
 	}
 
+	// PKG_CONFIG_PATH
+	pkgcfg := filepath.Join(pyHome, "lib", "pkgconfig")
+	pcp := os.Getenv("PKG_CONFIG_PATH")
+	if pcp == "" {
+		_ = os.Setenv("PKG_CONFIG_PATH", pkgcfg)
+	} else {
+		parts := strings.Split(pcp, string(os.PathListSeparator))
+		found := false
+		for _, p := range parts {
+			if p == pkgcfg {
+				found = true
+				break
+			}
+		}
+		if !found {
+			_ = os.Setenv("PKG_CONFIG_PATH", pkgcfg+string(os.PathListSeparator)+pcp)
+		}
+	}
+
 	// 避免自定义 PYTHONPATH 干扰
 	_ = os.Unsetenv("PYTHONPATH")
 	return nil
