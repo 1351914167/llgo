@@ -65,7 +65,7 @@ func Main(args []string) error {
 	return firstErr
 }
 
-const llpkgPrefix = "github.com/Bigdata-shiyang/test/"
+const llpkgPrefix = "github.com/PengPengPeng717/llpkg/"
 
 // 处理一个参数（可能是 module[@version] 或 name@Version）
 func processModuleArg(arg string, flags []string) error {
