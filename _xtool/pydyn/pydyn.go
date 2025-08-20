@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-// 从环境变量 LLPYG_PYHOME 读取；若未设置则返回 defaultPath
+// Read from env LLPYG_PYHOME; if unset, return defaultPath
 func GetPyHome(defaultPath string) string {
 	if v := os.Getenv("LLPYG_PYHOME"); v != "" {
 		return v
@@ -15,11 +15,11 @@ func GetPyHome(defaultPath string) string {
 	return defaultPath
 }
 
-// 将 pyHome 注入到当前进程环境，影响后续 exec.Command 使用的 python3/pip3
-// - 预置 PATH:  <pyHome>/bin:...（若未存在）
-// - 设置 PYTHONHOME=<pyHome>
-// - macOS 额外设置 DYLD_LIBRARY_PATH 追加 <pyHome>/lib（若未包含）
-// - 移除 PYTHONPATH（避免干扰）
+// Inject pyHome into current process environment to affect subsequent exec.Command python3/pip3
+// - Prepend PATH:  <pyHome>/bin:... (if not present)
+// - Set PYTHONHOME=<pyHome>
+// - On macOS, append <pyHome>/lib to DYLD_LIBRARY_PATH (if not present)
+// - Unset PYTHONPATH (to avoid interference)
 func ApplyEnv(pyHome string) error {
 	if pyHome == "" {
 		return nil
@@ -52,7 +52,7 @@ func ApplyEnv(pyHome string) error {
 		return err
 	}
 
-	// macOS 动态库
+	// macOS dynamic libraries
 	if runtime.GOOS == "darwin" {
 		dyld := os.Getenv("DYLD_LIBRARY_PATH")
 		if dyld == "" {
@@ -85,7 +85,7 @@ func ApplyEnv(pyHome string) error {
 		}
 	}
 
-	// 避免自定义 PYTHONPATH 干扰
+	// Avoid interference from custom PYTHONPATH
 	_ = os.Unsetenv("PYTHONPATH")
 	return nil
 }

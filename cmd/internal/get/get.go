@@ -17,7 +17,7 @@ import (
 
 var Cmd = &base.Command{
 	UsageLine: "llgo get [-t -u -v] [build flags] [modules...]",
-	Short:     "检查本地与云端 llpkg, 若存在则通过 Go Modules 获取依赖",
+	Short:     "Check local and remote llpkg; if available, fetch dependencies via Go Modules",
 	Run:       run,
 }
 
@@ -30,9 +30,9 @@ func run(cmd *base.Command, args []string) {
 	}
 }
 
-// Main 提供给 .gox 命令直接调用
+// Main is exposed for direct invocation by .gox commands
 func Main(args []string) error {
-	// 按“-参数... 后跟模块列表”的方式解析
+	// Parse as "-flags... followed by module list"
 	flags := make([]string, 0, len(args))
 	var modules []string
 	flagEndIndex := -1
@@ -65,26 +65,26 @@ func Main(args []string) error {
 	return firstErr
 }
 
-const llpkgPrefix = "github.com/PengPengPeng717/llpkg/"
+const llpkgPrefix = "github.com/Bigdata-shiyang/test/"
 
-// 处理一个参数（可能是 module[@version] 或 name@Version）
+// Handle a single argument (could be module[@version] or name@Version)
 func processModuleArg(arg string, flags []string) error {
 	name, version, _ := strings.Cut(arg, "@")
 	if name == "" {
 		return fmt.Errorf("invalid module path: %s", arg)
 	}
-	// 在 processModuleArg 中：
+	// In processModuleArg:
 	if strings.Contains(name, "/") {
 		return handleModuleSpecWithFlags(name, version, flags)
 	}
 	if version == "" {
-		// 无版本的短名 → 视为 llpkg/<name> 且使用 latest
+		// Short name without version → treat as llpkg/<name> and use latest
 		return handleModuleSpecWithFlags(llpkgPrefix+name, "", flags)
 	}
 	return ensureLLPkgByNameVersionWithFlags(name, version, flags)
 }
 
-// 处理形如 module[@version] 的请求（支持 flags）
+// Handle requests of the form module[@version] (supports flags)
 func handleModuleSpecWithFlags(mod string, ver string, flags []string) error {
 	if !strings.HasPrefix(mod, llpkgPrefix) {
 		spec := mod
@@ -97,31 +97,31 @@ func handleModuleSpecWithFlags(mod string, ver string, flags []string) error {
 		return runGoModTidy()
 	}
 
-	// llpkg 模块：如果指定版本，先校验云端是否存在；未指定则取 latest
+	// For llpkg modules: if a version is specified, validate on the remote; otherwise use latest
 	if ver == "" {
-		if inLocal(mod) {
-			vers, _ := listModuleVersionsLocal(mod) // GOPROXY=off
-			if len(vers) > 0 {
-				return runGoGetWithFlags(flags, mod+"@"+vers[len(vers)-1])
-			}
-		}
+		// if inLocal(mod) {
+		// 	vers, _ := listModuleVersionsLocal(mod) // GOPROXY=off
+		// 	if len(vers) > 0 {
+		// 		return runGoGetWithFlags(flags, mod+"@"+vers[len(vers)-1])
+		// 	}
+		// }
 		if err := runGoGetWithFlags(flags, mod+"@latest"); err != nil {
 			printLLPygHint()
-			return fmt.Errorf("指定版本不存在于云端 llpkg: %s@%s", mod, "latest")
+			return fmt.Errorf("specified version does not exist in remote llpkg: %s@%s", mod, "latest")
 		}
-		// 新增：远端拉取成功后安装 Python 包
+		// Additionally: after remote fetch succeeds, install the Python package
 		pkgName := strings.TrimPrefix(mod, llpkgPrefix)
 		if err := installPythonPackage(pkgName); err != nil {
-			return fmt.Errorf("安装 Python 包失败: %w", err)
+			return fmt.Errorf("failed to install Python package: %w", err)
 		}
 		return runGoModTidy()
 	}
-	vers, err := listModuleVersions(mod) // 云端版本列表
+	vers, err := listModuleVersions(mod) // remote version list
 	if err != nil {
 		return err
 	}
 	if !contains(vers, ver) {
-		return fmt.Errorf("指定版本不存在于云端 llpkg: %s@%s", mod, ver)
+		return fmt.Errorf("specified version does not exist in remote llpkg: %s@%s", mod, ver)
 	}
 	if err := runGoGetWithFlags(flags, mod+"@"+ver); err != nil {
 		return err
@@ -129,16 +129,16 @@ func handleModuleSpecWithFlags(mod string, ver string, flags []string) error {
 	return runGoModTidy()
 }
 
-// 直接将 name@Version 在 llpkg 云端校验并获取
+// Validate name@Version on llpkg remote and fetch it
 func ensureLLPkgByNameVersionWithFlags(name, ver string, flags []string) error {
 	mod := llpkgPrefix + name
-	// 如果本地已有该模块，仍用明确版本写入 go.mod，确保锁定
+	// If the module already exists locally, still write explicit version into go.mod to pin it
 	if inLocal(mod) {
 		if err := runGoGetWithFlags(flags, mod+"@"+ver); err != nil {
 			return err
 		}
 		if err := installPythonPackage(name); err != nil {
-			return fmt.Errorf("安装 Python 包失败: %w", err)
+			return fmt.Errorf("failed to install Python package: %w", err)
 		}
 		return runGoModTidy()
 	}
@@ -148,13 +148,13 @@ func ensureLLPkgByNameVersionWithFlags(name, ver string, flags []string) error {
 	}
 	if !contains(vers, ver) {
 		printLLPygHint()
-		return fmt.Errorf("指定版本不存在于云端 llpkg: %s@%s", mod, ver)
+		return fmt.Errorf("specified version does not exist in remote llpkg: %s@%s", mod, ver)
 	}
 	if err := runGoGetWithFlags(flags, mod+"@"+ver); err != nil {
 		return err
 	}
 	if err := installPythonPackage(name); err != nil {
-		return fmt.Errorf("安装 Python 包失败: %w", err)
+		return fmt.Errorf("failed to install Python package: %w", err)
 	}
 	return runGoModTidy()
 }
@@ -178,20 +178,20 @@ func listModuleVersions(mod string) ([]string, error) {
 	return m.Versions, nil
 }
 
-func listModuleVersionsLocal(mod string) ([]string, error) {
-	cmd := exec.Command("go", "list", "-m", "-versions", "-json", mod)
-	cmd.Env = append(os.Environ(), "GOPROXY=off")
-	var out bytes.Buffer
-	cmd.Stdout, cmd.Stderr = &out, os.Stderr
-	if err := cmd.Run(); err != nil {
-		return nil, fmt.Errorf("go list versions failed for %s: %w", mod, err)
-	}
-	var m listMod
-	if err := json.Unmarshal(out.Bytes(), &m); err != nil {
-		return nil, err
-	}
-	return m.Versions, nil
-}
+// func listModuleVersionsLocal(mod string) ([]string, error) {
+// 	cmd := exec.Command("go", "list", "-m", "-versions", "-json", mod)
+// 	cmd.Env = append(os.Environ(), "GOPROXY=off")
+// 	var out bytes.Buffer
+// 	cmd.Stdout, cmd.Stderr = &out, os.Stderr
+// 	if err := cmd.Run(); err != nil {
+// 		return nil, fmt.Errorf("go list versions failed for %s: %w", mod, err)
+// 	}
+// 	var m listMod
+// 	if err := json.Unmarshal(out.Bytes(), &m); err != nil {
+// 		return nil, err
+// 	}
+// 	return m.Versions, nil
+// }
 
 func contains(ss []string, want string) bool {
 	for _, s := range ss {
@@ -202,7 +202,7 @@ func contains(ss []string, want string) bool {
 	return false
 }
 
-// 仅离线检查是否已在本地（工作区或 GOMODCACHE）
+// Offline-only check if it already exists locally (workspace or GOMODCACHE)
 func inLocal(importPath string) bool {
 	cmd := exec.Command("go", "list", importPath)
 	cmd.Env = append(os.Environ(), "GOPROXY=off")
@@ -240,19 +240,19 @@ func workCache() string {
 }
 
 func printLLPygHint() {
-	fmt.Fprintln(os.Stderr, "llgo get: 需要 llpyg 工具链以生成 Python 绑定。")
-	fmt.Fprintln(os.Stderr, " - 方案一：向官方仓库提交 PR 以集成自动流程（建议）。")
-	fmt.Fprintln(os.Stderr, " - 方案二：本地安装 llpyg 工具链后重试：")
+	fmt.Fprintln(os.Stderr, "llgo get: llpyg toolchain is required to generate Python bindings.")
+	fmt.Fprintln(os.Stderr, " - Option 1: Submit a PR to the official repository to integrate the automated workflow (recommended).")
+	fmt.Fprintln(os.Stderr, " - Option 2: Install the llpyg toolchain locally and retry:")
 	fmt.Fprintln(os.Stderr, "     go install github.com/goplus/llgo/chore/llpyg@latest")
 }
 
-// installPythonPackage 安装 Python 包
+// installPythonPackage installs the Python package
 func installPythonPackage(packageName string) error {
 	installer := pyinstaller.NewInstaller()
 	return installer.InstallPackage(packageName)
 }
 
-// 安装对应 Python 包
+// Install the corresponding Python package
 // if err := installPythonPackage(name); err != nil {
-// 	return fmt.Errorf("安装 Python 包失败: %w", err)
+// 	return fmt.Errorf("failed to install Python package: %w", err)
 // }

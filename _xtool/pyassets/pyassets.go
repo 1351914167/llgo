@@ -16,12 +16,12 @@ import (
 //go:embed python/**
 var pyFS embed.FS
 
-// 新增：单文件归档，完整包含 python/ 下所有内容（含 _ 前缀文件等）
+// New: single-file archive fully contains everything under python/ (including files prefixed with _)
 //
 //go:embed python.tar.gz
 var pyTarGz []byte
 
-// 返回解压后的 PYTHONHOME 目录路径（.../tmpdir/python）
+// Return the extracted PYTHONHOME directory path (.../tmpdir/python)
 func ExtractToTemp() (string, error) {
 	root, err := os.MkdirTemp("", "py-embed-*")
 	if err != nil {
@@ -32,20 +32,20 @@ func ExtractToTemp() (string, error) {
 		if err := extractTarGzTo(dstRoot, pyTarGz); err != nil {
 			return "", err
 		}
-		return filepath.Dir(dstRoot), nil // 与老签名保持一致：返回 .../tmpdir/python
+		return filepath.Dir(dstRoot), nil // keep old signature: return .../tmpdir/python
 	}
-	// 归档缺失时，回退到逐文件落盘（受 go:embed 过滤限制）
+	// When archive is missing, fall back to writing individual files (limited by go:embed filters)
 	if err := extractFS(pyFS, "python", dstRoot); err != nil {
 		return "", err
 	}
 	return dstRoot, nil
 }
 
-// 解压到指定目录，返回 PYTHONHOME 路径（.../dstRoot/python）
+// Extract to a specified directory and return the PYTHONHOME path (.../dstRoot/python)
 func ExtractToDir(dstRoot string) (string, error) {
 	root := filepath.Join(dstRoot, "python")
 
-	// 已存在则跳过解压
+	// Skip extraction if already exists
 	if st, err := os.Stat(root); err == nil && st.IsDir() {
 		return root, nil
 	}
@@ -56,7 +56,7 @@ func ExtractToDir(dstRoot string) (string, error) {
 		}
 		return root, nil
 	}
-	// 归档缺失时，回退
+	// Fallback when archive is missing
 	if err := extractFS(pyFS, "python", root); err != nil {
 		return "", err
 	}
@@ -100,15 +100,15 @@ func extractTarGzTo(dstRoot string, tgz []byte) error {
 		if err != nil {
 			return err
 		}
-		// 归档内应为 "python/..."，我们要把它展开到 dstRoot (正好是 .../python)
-		// 如果你的归档包含顶层目录 python/，则这里直接用 hdr.Name 的相对路径
+		// The archive should contain paths like "python/..." which we expand to dstRoot (which is .../python)
+		// If your archive includes the top-level directory python/, use hdr.Name directly as a relative path
 		name := hdr.Name
-		// 屏蔽绝对路径与上级目录
+		// Sanitize absolute and parent paths
 		name = filepath.Clean(name)
 		if strings.HasPrefix(name, "/") || strings.Contains(name, ".."+string(filepath.Separator)) {
 			return fmt.Errorf("invalid path in tar: %s", name)
 		}
-		target := filepath.Join(filepath.Dir(dstRoot), name) // 保留归档内的 python/ 前缀
+		target := filepath.Join(filepath.Dir(dstRoot), name) // keep python/ prefix from archive
 		switch hdr.Typeflag {
 		case tar.TypeDir:
 			if err := os.MkdirAll(target, hdr.FileInfo().Mode().Perm()); err != nil {
@@ -133,13 +133,13 @@ func extractTarGzTo(dstRoot string, tgz []byte) error {
 			if err := os.MkdirAll(filepath.Dir(target), 0o755); err != nil {
 				return err
 			}
-			// 先删除可能存在的旧文件/链接
+			// Remove any existing file/symlink first
 			_ = os.Remove(target)
 			if err := os.Symlink(hdr.Linkname, target); err != nil {
 				return err
 			}
 		default:
-			// 其他类型（如硬链接等）一般不会在此发行物中出现，按需扩展
+			// Other types (e.g., hard links) are unlikely in this distribution; extend as needed
 		}
 	}
 	return nil
