@@ -1,3 +1,5 @@
+github.com/Bigdata-shiyang/test/numpy v0.1.1 h1:XlduOnXZnCqB/J4iq/7jB1rrSR0QE3On91NAE2uVqfY=
+github.com/Bigdata-shiyang/test/numpy v0.1.1/go.mod h1:yuSh6JYMp2HtfAXRis66tGbFTI9fwPAGrsj9AMLjLRc=
 github.com/google/go-cmp v0.5.2/go.mod h1:v8dTdLbMG2kIc/vJvl+f65V22dbkXbowE6jgT/gNBxE=
 github.com/google/go-cmp v0.6.0 h1:ofyhxvXcZhMsU5ulbFiLKl/XBFqE1GSq7atu8tAmTRI=
 github.com/google/go-cmp v0.6.0/go.mod h1:17dUlkBOakJ0+DkrSSNjCkIjxS6bF9zb3elmeNGIjoY=

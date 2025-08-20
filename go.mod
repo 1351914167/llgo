@@ -15,6 +15,7 @@ require (
 )
 
 require (
+	github.com/Bigdata-shiyang/test/numpy v0.1.1 // indirect
 	github.com/google/go-github/v69 v69.2.0 // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
 	golang.org/x/mod v0.26.0 // indirect
