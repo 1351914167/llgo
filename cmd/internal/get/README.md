@@ -7,7 +7,7 @@ export LLGO_ROOT=$PWD
 ```
 For now, site-packages is downloaded by pip in `llgo/python/lib/python3.12/site-packages`
 
-## How to check if `llgo get` work with a certain <pylib>
+## How to check if `llgo get` work with a certain \<pylib\>
 use the full path of a package and run command below:
 For example
 ```cmd
