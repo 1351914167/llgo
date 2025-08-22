@@ -43,6 +43,7 @@ import (
 	"github.com/goplus/llgo/internal/env"
 	"github.com/goplus/llgo/internal/mockable"
 	"github.com/goplus/llgo/internal/packages"
+	"github.com/goplus/llgo/internal/pyenv"
 	"github.com/goplus/llgo/internal/typepatch"
 	"github.com/goplus/llgo/ssa/abi"
 	"github.com/goplus/llgo/xtool/clang"
@@ -160,7 +161,6 @@ func Do(args []string, conf *Config) ([]Package, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to setup crosscompile: %w", err)
 	}
-
 	// Update GOOS/GOARCH from export if target was used
 	if conf.Target != "" && export.GOOS != "" {
 		conf.Goos = export.GOOS
@@ -286,6 +286,7 @@ func Do(args []string, conf *Config) ([]Package, error) {
 		isCheckLinkArgsEnabled: IsCheckLinkArgsEnabled(),
 		cTransformer:           cabi.NewTransformer(prog, conf.AbiMode),
 	}
+
 	pkgs, err := buildAllPkgs(ctx, initial, verbose)
 	check(err)
 	if mode == ModeGen {
@@ -308,7 +309,6 @@ func Do(args []string, conf *Config) ([]Package, error) {
 
 	global, err := createGlobals(ctx, ctx.prog, pkgs)
 	check(err)
-
 	for _, pkg := range initial {
 		if needLink(pkg, mode) {
 			linkMainPkg(ctx, pkg, allPkgs, global, conf, mode, verbose)
@@ -449,6 +449,18 @@ func buildAllPkgs(ctx *context, initial []*packages.Package, verbose bool) (pkgs
 				expdArgs := make([]string, 0, len(altParts))
 				for _, param := range altParts {
 					param = strings.TrimSpace(param)
+					if param == "$LLGO_LIB_PYTHON" {
+						err := pyenv.EnsureWithFetch("")
+						if err != nil {
+							panic(fmt.Sprintf("failed to prepare Python cache: %v\n\tLLGO_CACHE_DIR=%s\n\thint: set LLPYG_PYHOME or check network/permissions", err, env.LLGoCacheDir()))
+						}
+						if err = pyenv.EnsureBuildEnv(); err != nil {
+							panic(fmt.Sprintf("failed to set up Python build env: %v\n\tPYTHONHOME=%s", err, pyenv.PythonHome()))
+						}
+						if err = pyenv.Verify(); err != nil {
+							panic(fmt.Sprintf("failed to verify Python: %v\n\tpython=%s", err, filepath.Join(pyenv.PythonHome(), "bin", "python3")))
+						}
+					}
 					if strings.ContainsRune(param, '$') {
 						expdArgs = append(expdArgs, xenv.ExpandEnvToArgs(param)...)
 						ctx.nLibdir++
@@ -476,12 +488,20 @@ func buildAllPkgs(ctx *context, initial []*packages.Package, verbose bool) (pkgs
 						ctx.nLibdir++
 					}
 				}
+
 				if ctx.isCheckLinkArgsEnabled {
 					if err := ctx.compiler().CheckLinkArgs(pkgLinkArgs, isWasmTarget(ctx.buildConf.Goos)); err != nil {
 						panic(fmt.Sprintf("test link args '%s' failed\n\texpanded to: %v\n\tresolved to: %v\n\terror: %v", param, expdArgs, pkgLinkArgs, err))
 					}
 				}
 				aPkg.LinkArgs = append(aPkg.LinkArgs, pkgLinkArgs...)
+			}
+			if kind == cl.PkgPyModule {
+				if param != "" && param != "builtins" {
+					if err := pyenv.PipInstall(param); err != nil {
+						panic(fmt.Sprintf("pip install failed for '%s': %v\n\tPYTHONHOME=%s\n\thint: ensure pip is available and network reachable, or pin a version in LLGoPackage (e.g. py.numpy==1.26.4)", param, pyenv.PythonHome(), err))
+					}
+				}
 			}
 		default:
 			err := buildPkg(ctx, aPkg, verbose)
@@ -595,6 +615,17 @@ func linkMainPkg(ctx *context, pkg *packages.Package, pkgs []*aPackage, global l
 			}
 		}
 	})
+
+	// Heuristic: if link args reference python libs, force python init
+	if !needPyInit {
+		for _, arg := range linkArgs {
+			if strings.Contains(arg, "python") {
+				needPyInit = true
+				break
+			}
+		}
+	}
+
 	entryObjFile, err := genMainModuleFile(ctx, llssa.PkgRuntime, pkg, needRuntime, needPyInit)
 	check(err)
 	// defer os.Remove(entryLLFile)
@@ -608,6 +639,14 @@ func linkMainPkg(ctx *context, pkg *packages.Package, pkgs []*aPackage, global l
 
 	err = linkObjFiles(ctx, app, objFiles, linkArgs, verbose)
 	check(err)
+
+	// After linking, ensure the executable references libpython via @rpath
+	if needPyInit && ctx.buildConf.Goos == "darwin" {
+		if dep := findDylibDep(app, "python3"); dep != "" && !strings.HasPrefix(dep, "@rpath") {
+			base := filepath.Base(dep)
+			_ = exec.Command("install_name_tool", "-change", dep, "@rpath/"+base, app).Run()
+		}
+	}
 
 	switch mode {
 	case ModeTest:
