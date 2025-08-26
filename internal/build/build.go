@@ -449,17 +449,31 @@ func buildAllPkgs(ctx *context, initial []*packages.Package, verbose bool) (pkgs
 				expdArgs := make([]string, 0, len(altParts))
 				for _, param := range altParts {
 					param = strings.TrimSpace(param)
-					if param == "$LLGO_LIB_PYTHON" {
-						err := pyenv.EnsureWithFetch("")
-						if err != nil {
-							panic(fmt.Sprintf("failed to prepare Python cache: %v\n\tLLGO_CACHE_DIR=%s\n\thint: set LLPYG_PYHOME or check network/permissions", err, env.LLGoCacheDir()))
+					if param == "$(pkg-config --libs python3-embed)" {
+						if err := func() error {
+							pyHome := pyenv.PythonHome()
+							steps := []struct {
+								name string
+								run  func() error
+							}{
+								{"prepare Python cache", func() error { return pyenv.EnsureWithFetch("") }},
+								{"setup Python build env", pyenv.EnsureBuildEnv},
+								{"verify Python", pyenv.Verify},
+								{"fix install_name", func() error { return pyenv.FixLibpythonInstallName(pyHome) }},
+							}
+							for _, s := range steps {
+								if e := s.run(); e != nil {
+									return fmt.Errorf("%s: %w", s.name, e)
+								}
+							}
+							return nil
+						}(); err != nil {
+							panic(fmt.Sprintf("python toolchain init failed: %v\n\tLLGO_CACHE_DIR=%s\n\tPYTHONHOME=%s\n\thint: set LLPYG_PYHOME or check network/permissions",
+								err, env.LLGoCacheDir(), pyenv.PythonHome()))
 						}
-						if err = pyenv.EnsureBuildEnv(); err != nil {
-							panic(fmt.Sprintf("failed to set up Python build env: %v\n\tPYTHONHOME=%s", err, pyenv.PythonHome()))
-						}
-						if err = pyenv.Verify(); err != nil {
-							panic(fmt.Sprintf("failed to verify Python: %v\n\tpython=%s", err, filepath.Join(pyenv.PythonHome(), "bin", "python3")))
-						}
+						// if err = pyenv.EnsurePcRpath(pyenv.PythonHome()); err != nil {
+						// 	panic(fmt.Sprintf("failed to inject rpath into python3-embed.pc: %v", err))
+						// }
 					}
 					if strings.ContainsRune(param, '$') {
 						expdArgs = append(expdArgs, xenv.ExpandEnvToArgs(param)...)
@@ -488,7 +502,6 @@ func buildAllPkgs(ctx *context, initial []*packages.Package, verbose bool) (pkgs
 						ctx.nLibdir++
 					}
 				}
-
 				if ctx.isCheckLinkArgsEnabled {
 					if err := ctx.compiler().CheckLinkArgs(pkgLinkArgs, isWasmTarget(ctx.buildConf.Goos)); err != nil {
 						panic(fmt.Sprintf("test link args '%s' failed\n\texpanded to: %v\n\tresolved to: %v\n\terror: %v", param, expdArgs, pkgLinkArgs, err))
