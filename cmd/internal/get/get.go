@@ -23,9 +23,7 @@ func run(cmd *base.Command, args []string) {
 	}
 }
 
-// Main 仅执行 go get/go mod tidy，不做任何 Python 安装/检测
 func Main(args []string) error {
-	// 解析为 “flags... + modules...”
 	flags := make([]string, 0, len(args))
 	var modules []string
 	flagEndIndex := -1
@@ -60,14 +58,12 @@ func Main(args []string) error {
 
 const llpkgPrefix = "github.com/Bigdata-shiyang/test/"
 
-// 处理单个参数：module[@version] 或 简写 name[@version]（映射到 llpkg 前缀）
 func processModuleArg(arg string, flags []string) error {
 	name, version, _ := strings.Cut(arg, "@")
 	if name == "" {
 		return fmt.Errorf("invalid module path: %s", arg)
 	}
 
-	// 含 / 视为完整 module path；否则映射到 llpkg 前缀
 	if strings.Contains(name, "/") {
 		return handleModuleSpecWithFlags(name, version, flags)
 	}
@@ -77,7 +73,6 @@ func processModuleArg(arg string, flags []string) error {
 	return handleModuleSpecWithFlags(llpkgPrefix+name, version, flags)
 }
 
-// 仅执行 go get（带版本），随后 go mod tidy
 func handleModuleSpecWithFlags(mod string, ver string, flags []string) error {
 	spec := mod
 	if ver != "" {
