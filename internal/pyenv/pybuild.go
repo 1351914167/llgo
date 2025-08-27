@@ -191,7 +191,8 @@ func FixLibpythonInstallName(pyHome string) error {
 	if real, err := filepath.EvalSymlinks(target); err == nil && real != "" {
 		target = real
 	}
-	newID := target
+	base := filepath.Base(target)
+	newID := "@rpath/" + base
 	cmd := exec.Command("install_name_tool", "-id", newID, target)
 	if out, err := cmd.CombinedOutput(); err != nil {
 		return fmt.Errorf("install_name_tool -id failed: %v, out=%s", err, string(out))
