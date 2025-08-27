@@ -657,12 +657,14 @@ func linkMainPkg(ctx *context, pkg *packages.Package, pkgs []*aPackage, global l
 			*args = append(*args, flag)
 		}
 
-		addRpath(&linkArgs, filepath.Join(pyenv.PythonHome(), "lib"))
-		addRpath(&linkArgs, "/install/lib")
+		// 动态计算 Python rpath
+		for _, dir := range pyenv.FindPythonRpaths(pyenv.PythonHome()) {
+			addRpath(&linkArgs, dir)
+		}
+		// 可选兜底
 		addRpath(&linkArgs, "/usr/local/lib")
 
 		err = linkObjFiles(ctx, app, objFiles, linkArgs, verbose)
-		fmt.Println("linkArgs", linkArgs)
 		check(err)
 	}
 
