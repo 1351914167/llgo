@@ -18,7 +18,7 @@ var (
 
 // llgo bundle
 var Cmd = &base.Command{
-	UsageLine: "llgo bundle [-mode onedir|onefile] [-out output] [packages]",
+	UsageLine: "llgo bundle [-mode dir|exe] [-out output] [packages]",
 	Short:     "Package executable with embedded Python runtime",
 }
 
@@ -27,8 +27,8 @@ func init() {
 
 	flags.AddBuildFlags(&Cmd.Flag)
 
-	Cmd.Flag.StringVar(&mode, "mode", "onedir", "bundle mode: onedir|onefile")
-	Cmd.Flag.StringVar(&out, "out", "", "output file for onefile (default: <exe>-onefile)")
+	Cmd.Flag.StringVar(&mode, "mode", "dir", "bundle mode: dir|exe")
+	Cmd.Flag.StringVar(&out, "out", "", "output file for exe mode (default: <exe>-exe)")
 }
 
 func runCmd(cmd *base.Command, args []string) {
@@ -75,24 +75,24 @@ func runCmd(cmd *base.Command, args []string) {
 	}
 
 	switch mode {
-	case "onedir":
+	case "dir":
 		if err := pyenv.BundleOnedirApp(exe); err != nil {
-			fmt.Fprintln(os.Stderr, "bundle onedir failed:", err)
+			fmt.Fprintln(os.Stderr, "bundle dir failed:", err)
 			os.Exit(1)
 		}
-		fmt.Println("[llgo bundle] onedir done")
-	case "onefile":
+		fmt.Println("[llgo bundle] dir done")
+	case "exe":
 		dst := out
 		if dst == "" {
-			dst = exe + "-onefile"
+			dst = exe
 		}
 		if err := pyenv.BuildOnefileBinary(exe, dst); err != nil {
-			fmt.Fprintln(os.Stderr, "bundle onefile failed:", err)
+			fmt.Fprintln(os.Stderr, "bundle exe failed:", err)
 			os.Exit(1)
 		}
-		fmt.Println("[llgo bundle] onefile created:", dst)
+		fmt.Println("[llgo bundle] exe created:", dst)
 	default:
-		fmt.Fprintln(os.Stderr, "invalid -mode, expected onedir|onefile")
+		fmt.Fprintln(os.Stderr, "invalid -mode, expected dir|exe")
 		os.Exit(2)
 	}
 }
