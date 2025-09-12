@@ -381,7 +381,7 @@ func main() {
 
 func extractPayload(p []byte) (string, error) {
     sum := sha256.Sum256(p)
-    tag := hex.EncodeToString(sum[:8])
+    tag := hex.EncodeToString(sum)
     base, err := os.UserCacheDir()
     if err != nil { return "", err }
     root := filepath.Join(base, "llgo", "pybundle", tag)
