@@ -13,10 +13,16 @@
  * See the License for the specific language governing permissions and limitations under the License.
  */
 
-use "get [flags] [packages]"
+import (
+	self "github.com/goplus/llgo/cmd/internal/get"
+)
 
-short "Add dependencies to current module and install them"
+use "get [-t -u -v] [build flags] [modules...]"
+
+short "Fetch modules with Go Modules (no Python actions)"
+
+flagOff
 
 run args => {
-	panic "todo"
+	self.Cmd.Run self.Cmd, args
 }

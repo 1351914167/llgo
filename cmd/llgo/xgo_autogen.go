@@ -8,6 +8,7 @@ import (
 	"github.com/goplus/llgo/cmd/internal/build"
 	"github.com/goplus/llgo/cmd/internal/bundle"
 	"github.com/goplus/llgo/cmd/internal/clean"
+	"github.com/goplus/llgo/cmd/internal/get"
 	"github.com/goplus/llgo/cmd/internal/install"
 	"github.com/goplus/llgo/cmd/internal/run"
 	"github.com/goplus/llgo/cmd/internal/test"
@@ -146,17 +147,19 @@ func (this *Cmd_cmptest) Main(_xgo_arg0 string) {
 func (this *Cmd_cmptest) Classfname() string {
 	return "cmptest"
 }
-//line cmd/llgo/get_cmd.gox:16
+//line cmd/llgo/get_cmd.gox:20
 func (this *Cmd_get) Main(_xgo_arg0 string) {
 	this.Command.Main(_xgo_arg0)
-//line cmd/llgo/get_cmd.gox:16:1
-	this.Use("get [flags] [packages]")
-//line cmd/llgo/get_cmd.gox:18:1
-	this.Short("Add dependencies to current module and install them")
 //line cmd/llgo/get_cmd.gox:20:1
+	this.Use("get [-t -u -v] [build flags] [modules...]")
+//line cmd/llgo/get_cmd.gox:22:1
+	this.Short("Fetch modules with Go Modules (no Python actions)")
+//line cmd/llgo/get_cmd.gox:24:1
+	this.FlagOff()
+//line cmd/llgo/get_cmd.gox:26:1
 	this.Run__1(func(args []string) {
-//line cmd/llgo/get_cmd.gox:21:1
-		panic("todo")
+//line cmd/llgo/get_cmd.gox:27:1
+		get.Cmd.Run(get.Cmd, args)
 	})
 }
 func (this *Cmd_get) Classfname() string {
