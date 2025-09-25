@@ -625,11 +625,11 @@ func linkMainPkg(ctx *context, pkg *packages.Package, pkgs []*aPackage, global l
 	// defer os.Remove(entryLLFile)
 	objFiles = append(objFiles, entryObjFile)
 
-	if needPyInit {
-		initObj, err := genPyInitFromExeDirObj(ctx)
-		check(err)
-		objFiles = append(objFiles, initObj)
-	}
+	// if needPyInit {
+	// 	initObj, err := genPyInitFromExeDirObj(ctx)
+	// 	check(err)
+	// 	objFiles = append(objFiles, initObj)
+	// }
 
 	if global != nil {
 		export, err := exportObject(ctx, pkg.PkgPath+".global", pkg.ExportFile+"-global", []byte(global.String()))
@@ -787,8 +787,10 @@ func genMainModuleFile(ctx *context, rtPkgPath string, pkg *packages.Package, ne
 		rtInitDecl = "declare void @\"" + rtPkgPath + ".init\"()"
 	}
 	if needPyInit {
-		pyEnvInit = "call void @__llgo_py_init_from_exedir()"
-		pyEnvInitDecl = "declare void @__llgo_py_init_from_exedir()"
+		// pyEnvInit = "call void @__llgo_py_init_from_exedir()"
+		// pyEnvInitDecl = "declare void @__llgo_py_init_from_exedir()"
+		pyEnvInit = "call void @Py_Initialize()"
+		pyEnvInitDecl = "declare void @Py_Initialize()"
 	}
 	declSizeT := "%size_t = type i64"
 	if is32Bits(ctx.buildConf.Goarch) {

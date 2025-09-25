@@ -411,6 +411,34 @@ func prependEnv(key, dir string) {
 `
 }
 
+func onedirBootMain() string {
+	return `package main
+
+import (
+	"os"
+	"os/exec"
+	"path/filepath"
+)
+
+const targetName = "app" // 真实可执行文件名（与打包流程约定）
+
+func main() {
+	exeDir := filepath.Dir(os.Args[0])
+	// 仅设置 PYTHONHOME，dir 布局不解包任何内容
+	os.Setenv("PYTHONHOME", filepath.Join(exeDir, "..", "lib", "python"))
+
+	appPath := filepath.Join(exeDir, targetName)
+	args := os.Args[1:]
+	cmd := exec.Command(appPath, args...)
+	cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
+	if err := cmd.Run(); err != nil {
+		if ps := cmd.ProcessState; ps != nil { os.Exit(ps.ExitCode()) }
+		panic(err)
+	}
+}
+`
+}
+
 func isDynLib(name string) bool {
 	if runtime.GOOS == "darwin" {
 		return strings.HasSuffix(name, ".dylib")
