@@ -497,6 +497,7 @@ func buildAllPkgs(ctx *context, initial []*packages.Package, verbose bool) (pkgs
 				aPkg.LinkArgs = append(aPkg.LinkArgs, pkgLinkArgs...)
 			}
 			if kind == cl.PkgPyModule {
+				fmt.Println(aPkg.Dir)
 				if name := strings.TrimSpace(param); name != "" {
 					base := strings.Split(name, "@")[0]
 					base = strings.Split(base, "==")[0]

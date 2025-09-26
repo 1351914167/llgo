@@ -424,7 +424,7 @@ const targetName = "app" // 真实可执行文件名（与打包流程约定）
 
 func main() {
 	exeDir := filepath.Dir(os.Args[0])
-	// 仅设置 PYTHONHOME，dir 布局不解包任何内容
+	// 仅设置 PYTHONHOME, dir 布局不解包任何内容
 	os.Setenv("PYTHONHOME", filepath.Join(exeDir, "..", "lib", "python"))
 
 	appPath := filepath.Join(exeDir, targetName)
