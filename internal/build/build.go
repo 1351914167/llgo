@@ -40,17 +40,17 @@ import (
 	"github.com/goplus/llgo/cl"
 	"github.com/goplus/llgo/internal/crosscompile"
 	"github.com/goplus/llgo/internal/env"
+	"github.com/goplus/llgo/internal/llpkg"
 	"github.com/goplus/llgo/internal/mockable"
 	"github.com/goplus/llgo/internal/packages"
 	"github.com/goplus/llgo/internal/pyenv"
 	"github.com/goplus/llgo/internal/typepatch"
+	llruntime "github.com/goplus/llgo/runtime"
+	llssa "github.com/goplus/llgo/ssa"
 	"github.com/goplus/llgo/ssa/abi"
 	"github.com/goplus/llgo/xtool/clang"
 	xenv "github.com/goplus/llgo/xtool/env"
 	"github.com/goplus/llgo/xtool/env/llvm"
-
-	llruntime "github.com/goplus/llgo/runtime"
-	llssa "github.com/goplus/llgo/ssa"
 )
 
 type Mode int
