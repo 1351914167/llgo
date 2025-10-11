@@ -17,7 +17,6 @@ import (
 
 // BundleOnedir copies libpython and the standard library (including site-packages). Layout:
 // <exe_dir>/python/lib/libpython3.x.{dylib|so}
-// <exe_dir>/python/lib/python3.12/**（含 lib-dynload/ 与 site-packages/）
 func BundleOnedir(app string) error {
 	exeDir := filepath.Dir(app)
 	pyHome := PythonHome()
@@ -45,7 +44,6 @@ func BundleOnedir(app string) error {
 		_ = exec.Command("install_name_tool", "-id", "@rpath/"+filepath.Base(libDst), libDst).Run()
 	}
 
-	// 2.1) 复制 PYHOME/lib 下其它所有动态库到 <exe_dir>/lib/python/lib
 	if all, err := listDynLibs(filepath.Join(pyHome, "lib")); err == nil {
 		for _, f := range all {
 			if filepath.Base(f) == filepath.Base(libSrc) {
